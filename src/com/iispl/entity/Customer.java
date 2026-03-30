@@ -9,76 +9,109 @@ import com.iispl.enums.KycStatus;
  */
 public class Customer extends BaseEntity implements Validatable {
 
-    private String     firstName;
-    private String     lastName;
-    private String     email;
-    private KycStatus  kycStatus;
-    private String     customerTier;   // e.g. RETAIL / CORPORATE / PREMIUM
-    private LocalDate  onboardingDate;
+	private String firstName;
+	private String lastName;
+	private String email;
+	private KycStatus kycStatus;
+	private String customerTier; // e.g. RETAIL / CORPORATE / PREMIUM
+	private LocalDate onboardingDate;
 
-    public Customer() {}
+	public Customer() {
+	}
 
-    public Customer(String firstName, String lastName, String email,
-                    KycStatus kycStatus, String customerTier, LocalDate onboardingDate) {
-        this.firstName      = firstName;
-        this.lastName       = lastName;
-        this.email          = email;
-        this.kycStatus      = kycStatus;
-        this.customerTier   = customerTier;
-        this.onboardingDate = onboardingDate;
-    }
+	public Customer(String firstName, String lastName, String email, KycStatus kycStatus, String customerTier,
+			LocalDate onboardingDate) {
+		this.firstName = firstName;
+		this.lastName = lastName;
+		this.email = email;
+		this.kycStatus = kycStatus;
+		this.customerTier = customerTier;
+		this.onboardingDate = onboardingDate;
+	}
 
-    public String getFullName() {
-        return firstName + " " + lastName;
-    }
+	public String getFullName() {
+		return firstName + " " + lastName;
+	}
 
-    // ------------------------------------------------------------------ //
-    //  Validatable                                                         //
-    // ------------------------------------------------------------------ //
+	// ------------------------------------------------------------------ //
+	// Validatable //
+	// ------------------------------------------------------------------ //
 
-    @Override
-    public boolean isValid() {
-        return firstName != null && !firstName.isBlank()
-            && lastName  != null && !lastName.isBlank()
-            && email     != null && email.contains("@")
-            && kycStatus != null;
-    }
+	@Override
+	public boolean isValid() {
+		return firstName != null && !firstName.isBlank() && lastName != null && !lastName.isBlank() && email != null
+				&& email.contains("@") && kycStatus != null;
+	}
 
-    @Override
-    public String validationErrors() {
-        StringBuilder sb = new StringBuilder();
-        if (firstName == null || firstName.isBlank())   sb.append("firstName required; ");
-        if (lastName  == null || lastName.isBlank())    sb.append("lastName required; ");
-        if (email     == null || !email.contains("@"))  sb.append("valid email required; ");
-        if (kycStatus == null)                          sb.append("kycStatus required; ");
-        return sb.toString();
-    }
+	@Override
+	public String validationErrors() {
+		StringBuilder sb = new StringBuilder();
+		if (firstName == null || firstName.isBlank())
+			sb.append("firstName required; ");
+		if (lastName == null || lastName.isBlank())
+			sb.append("lastName required; ");
+		if (email == null || !email.contains("@"))
+			sb.append("valid email required; ");
+		if (kycStatus == null)
+			sb.append("kycStatus required; ");
+		return sb.toString();
+	}
 
-    // ------------------------------------------------------------------ //
-    //  Getters / Setters                                                   //
-    // ------------------------------------------------------------------ //
+	// ------------------------------------------------------------------ //
+	// Getters / Setters //
+	// ------------------------------------------------------------------ //
 
-    public String    getFirstName()                      { return firstName; }
-    public void      setFirstName(String firstName)      { this.firstName = firstName; }
+	public String getFirstName() {
+		return firstName;
+	}
 
-    public String    getLastName()                       { return lastName; }
-    public void      setLastName(String lastName)        { this.lastName = lastName; }
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
 
-    public String    getEmail()                          { return email; }
-    public void      setEmail(String email)              { this.email = email; }
+	public String getLastName() {
+		return lastName;
+	}
 
-    public KycStatus getKycStatus()                      { return kycStatus; }
-    public void      setKycStatus(KycStatus kycStatus)   { this.kycStatus = kycStatus; }
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
+	}
 
-    public String    getCustomerTier()                         { return customerTier; }
-    public void      setCustomerTier(String customerTier)      { this.customerTier = customerTier; }
+	public String getEmail() {
+		return email;
+	}
 
-    public LocalDate getOnboardingDate()                       { return onboardingDate; }
-    public void      setOnboardingDate(LocalDate onboardingDate){ this.onboardingDate = onboardingDate; }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    @Override
-    public String toString() {
-        return "Customer{id=" + getId() + ", name=" + getFullName()
-             + ", kyc=" + kycStatus + ", tier=" + customerTier + "}";
-    }
+	public KycStatus getKycStatus() {
+		return kycStatus;
+	}
+
+	public void setKycStatus(KycStatus kycStatus) {
+		this.kycStatus = kycStatus;
+	}
+
+	public String getCustomerTier() {
+		return customerTier;
+	}
+
+	public void setCustomerTier(String customerTier) {
+		this.customerTier = customerTier;
+	}
+
+	public LocalDate getOnboardingDate() {
+		return onboardingDate;
+	}
+
+	public void setOnboardingDate(LocalDate onboardingDate) {
+		this.onboardingDate = onboardingDate;
+	}
+
+	@Override
+	public String toString() {
+		return "Customer{id=" + getId() + ", name=" + getFullName() + ", kyc=" + kycStatus + ", tier=" + customerTier
+				+ "}";
+	}
 }
