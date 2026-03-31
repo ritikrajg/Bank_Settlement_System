@@ -6,8 +6,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
-
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.iispl.adapter.AdapterRegistry;
+import com.iispl.adapter.CbsAdapter;
+import com.iispl.adapter.NeftUpiAdapter;
+import com.iispl.adapter.RtgsAdapter;
+import com.iispl.adapter.SwiftAdapter;
+import com.iispl.enums.SourceType;
 
 
 
@@ -18,6 +26,23 @@ public class Main {
 	public static void main(String[] args) throws Exception{
 		LocalDate settlementDate=LocalDate.now();
 		printBanner(settlementDate);
+	    AdapterRegistry registry=new AdapterRegistry();
+	    registry.register(new CbsAdapter());
+        registry.register(new RtgsAdapter());
+        registry.register(new SwiftAdapter());
+        registry.register(new NeftUpiAdapter(SourceType.NEFT));
+        registry.register(new NeftUpiAdapter(SourceType.UPI));
+        
+        Map<SourceType, List<String>> payloads = new LinkedHashMap<>();
+        payloads.put(SourceType.CBS, readLines("data/cbs.txt"));
+        payloads.put(SourceType.RTGS, readLines("data/rtgs.csv"));
+        payloads.put(SourceType.NEFT, readLines("data/neft.txt"));
+        payloads.put(SourceType.UPI, readLines("data/upi.txt"));
+        payloads.put(SourceType.SWIFT, readSwiftMessages("data/swift.txt"));
+        
+        int totalPayloads = payloads.values().stream().mapToInt(List::size).sum();
+        System.out.printf("Loaded %d payloads from %d source systems.%n",
+                totalPayloads, payloads.size());
 	    
 	}
 	
