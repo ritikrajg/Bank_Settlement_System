@@ -17,8 +17,6 @@ import java.sql.SQLException;
  */
 public class DBConnection {
 
-    private static final DatabaseConfig CONFIG = DatabaseConfig.getInstance();
-
     /** One connection per thread. */
     private static final ThreadLocal<Connection> THREAD_LOCAL = new ThreadLocal<>();
 
@@ -26,10 +24,11 @@ public class DBConnection {
     public static Connection getConnection() throws SQLException {
         Connection conn = THREAD_LOCAL.get();
         if (conn == null || conn.isClosed()) {
+            DatabaseConfig config = getConfig();
             conn = DriverManager.getConnection(
-                CONFIG.getUrl(),
-                CONFIG.getUsername(),
-                CONFIG.getPassword()
+                config.getUrl(),
+                config.getUsername(),
+                config.getPassword()
             );
             conn.setAutoCommit(false);          // all writes are explicit-commit
             THREAD_LOCAL.set(conn);
@@ -73,6 +72,14 @@ public class DBConnection {
         Connection conn = THREAD_LOCAL.get();
         if (conn != null && !conn.isClosed()) {
             conn.commit();
+        }
+    }
+
+    private static DatabaseConfig getConfig() throws SQLException {
+        try {
+            return DatabaseConfig.getInstance();
+        } catch (Throwable t) {
+            throw new SQLException("Failed to initialize database configuration", t);
         }
     }
 

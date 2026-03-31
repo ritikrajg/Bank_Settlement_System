@@ -1,155 +1,85 @@
 package com.iispl.entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import com.iispl.enums.TransactionStatus;
 
 /**
- * Abstract base for every transaction subtype. Concrete subclasses add
- * channel-specific fields.
+ * Abstract base for all transaction subtypes used during settlement processing.
  */
-public abstract class Transaction extends BaseEntity implements Validatable, Processable {
+public abstract class Transaction {
 
-	private Long debitAccountId;
-	private Long creditAccountId;
-	private BigDecimal amount;
-	private String currency;
-	private LocalDateTime txnDate;
-	private LocalDate valueDate;
-	private TransactionStatus status;
-	private String referenceNumber;
+    protected long txnId;
+    protected BigDecimal amount;
+    protected String currency;
+    protected TransactionStatus status;
+    protected String sourceBank;
+    protected String destinationBank;
 
-	protected Transaction() {
-	}
+    protected Transaction() {
+    }
 
-	protected Transaction(Long debitAccountId, Long creditAccountId, BigDecimal amount, String currency,
-			LocalDateTime txnDate, LocalDate valueDate, String referenceNumber) {
-		this.debitAccountId = debitAccountId;
-		this.creditAccountId = creditAccountId;
-		this.amount = amount;
-		this.currency = currency;
-		this.txnDate = txnDate;
-		this.valueDate = valueDate;
-		this.referenceNumber = referenceNumber;
-		this.status = TransactionStatus.INITIATED;
-	}
+    protected Transaction(long txnId, BigDecimal amount, String currency,
+            String sourceBank, String destinationBank) {
+        this.txnId = txnId;
+        this.amount = amount;
+        this.currency = currency;
+        this.sourceBank = sourceBank;
+        this.destinationBank = destinationBank;
+        this.status = TransactionStatus.QUEUED;
+    }
 
-	// ------------------------------------------------------------------ //
-	// Processable — subclasses may override process() for custom logic //
-	// ------------------------------------------------------------------ //
+    /** Factory — wraps an IncomingTransaction into the correct concrete subtype. */
+    
 
-	@Override
-	public boolean canProcess() {
-		return isValid() && (status == TransactionStatus.INITIATED || status == TransactionStatus.VALIDATED);
-	}
+    public abstract String getType();
 
-	@Override
-	public void process() {
-		if (!canProcess()) {
-			throw new IllegalStateException(
-					"Transaction " + referenceNumber + " cannot be processed in status: " + status);
-		}
-		status = TransactionStatus.PENDING_SETTLEMENT;
-	}
+    // Getters / Setters
+    public long getTxnId() {
+        return txnId;
+    }
 
-	// ------------------------------------------------------------------ //
-	// Validatable //
-	// ------------------------------------------------------------------ //
+    public void setTxnId(long txnId) {
+        this.txnId = txnId;
+    }
 
-	@Override
-	public boolean isValid() {
-		return debitAccountId != null && creditAccountId != null && amount != null
-				&& amount.compareTo(BigDecimal.ZERO) > 0 && currency != null && currency.length() == 3
-				&& txnDate != null && valueDate != null && referenceNumber != null && !referenceNumber.isBlank();
-	}
+    public BigDecimal getAmount() {
+        return amount;
+    }
 
-	@Override
-	public String validationErrors() {
-		StringBuilder sb = new StringBuilder();
-		if (debitAccountId == null)
-			sb.append("debitAccountId required; ");
-		if (creditAccountId == null)
-			sb.append("creditAccountId required; ");
-		if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0)
-			sb.append("amount must be positive; ");
-		if (currency == null || currency.length() != 3)
-			sb.append("currency must be ISO-3; ");
-		if (txnDate == null)
-			sb.append("txnDate required; ");
-		if (valueDate == null)
-			sb.append("valueDate required; ");
-		if (referenceNumber == null || referenceNumber.isBlank())
-			sb.append("referenceNumber required; ");
-		return sb.toString();
-	}
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
 
-	// ------------------------------------------------------------------ //
-	// Getters / Setters //
-	// ------------------------------------------------------------------ //
+    public String getCurrency() {
+        return currency;
+    }
 
-	public Long getDebitAccountId() {
-		return debitAccountId;
-	}
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
 
-	public void setDebitAccountId(Long id) {
-		this.debitAccountId = id;
-	}
+    public TransactionStatus getStatus() {
+        return status;
+    }
 
-	public Long getCreditAccountId() {
-		return creditAccountId;
-	}
+    public void setStatus(TransactionStatus status) {
+        this.status = status;
+    }
 
-	public void setCreditAccountId(Long id) {
-		this.creditAccountId = id;
-	}
+    public String getSourceBank() {
+        return sourceBank;
+    }
 
-	public BigDecimal getAmount() {
-		return amount;
-	}
+    public void setSourceBank(String sourceBank) {
+        this.sourceBank = sourceBank;
+    }
 
-	public void setAmount(BigDecimal amount) {
-		this.amount = amount;
-	}
+    public String getDestinationBank() {
+        return destinationBank;
+    }
 
-	public String getCurrency() {
-		return currency;
-	}
-
-	public void setCurrency(String currency) {
-		this.currency = currency;
-	}
-
-	public LocalDateTime getTxnDate() {
-		return txnDate;
-	}
-
-	public void setTxnDate(LocalDateTime txnDate) {
-		this.txnDate = txnDate;
-	}
-
-	public LocalDate getValueDate() {
-		return valueDate;
-	}
-
-	public void setValueDate(LocalDate valueDate) {
-		this.valueDate = valueDate;
-	}
-
-	public TransactionStatus getStatus() {
-		return status;
-	}
-
-	public void setStatus(TransactionStatus status) {
-		this.status = status;
-	}
-
-	public String getReferenceNumber() {
-		return referenceNumber;
-	}
-
-	public void setReferenceNumber(String ref) {
-		this.referenceNumber = ref;
-	}
+    public void setDestinationBank(String destinationBank) {
+        this.destinationBank = destinationBank;
+    }
 }
