@@ -18,6 +18,7 @@ import com.iispl.enums.SourceType;
 
 public class IngestionPhase {
 
+	
 	private final AdapterRegistry adapterRegistry;
     private final ExecutorService executor;
     private final java.util.concurrent.BlockingQueue<IncomingTransaction> queue;
