@@ -11,27 +11,26 @@ import java.util.concurrent.TimeoutException;
 
 import com.iispl.adapter.AdapterRegistry;
 import com.iispl.adapter.TransactionAdapter;
-
+import com.iispl.dao.TransactionDao;
 import com.iispl.entity.IncomingTransaction;
 import com.iispl.enums.SourceType;
-
+import com.iispl.threading.IngestionWorker;
 
 public class IngestionPhase {
 
-	
 	private final AdapterRegistry adapterRegistry;
     private final ExecutorService executor;
     private final java.util.concurrent.BlockingQueue<IncomingTransaction> queue;
-    
+    private final TransactionDao txnDAO;
 
     public IngestionPhase(AdapterRegistry adapterRegistry,
             ExecutorService executor,
-            java.util.concurrent.BlockingQueue<IncomingTransaction> pipelineQueue
-            ) {
+            java.util.concurrent.BlockingQueue<IncomingTransaction> pipelineQueue,
+            TransactionDao txnDAO) {
         this.adapterRegistry = adapterRegistry;
         this.executor = executor;
         this.queue = pipelineQueue;
-        
+        this.txnDAO = txnDAO;
     }
     public void runIngestion(Map<SourceType, List<String>> payloads) throws InterruptedException {
         List<Future<?>> futures = new ArrayList<>();
@@ -45,7 +44,8 @@ public class IngestionPhase {
 
             try {
                 TransactionAdapter adapter = adapterRegistry.getAdapter(type);
-                
+                futures.add(executor.submit(
+                        new IngestionWorker(adapter, entry.getValue(), queue, txnDAO)));
             } catch (Exception e) {
                 System.err.println("  Could not start ingestion for " + type + ": " + e.getMessage());
             }
@@ -58,7 +58,13 @@ public class IngestionPhase {
                 future.cancel(true);
                 System.err.println("  Ingestion timed out for one worker.");
             } catch (ExecutionException e) {
-                System.err.println("  Ingestion worker failed: " + e.getCause());
+                Throwable cause = e.getCause();
+                System.err.println("  Ingestion worker failed: " + cause);
+                if (cause != null) {
+                    cause.printStackTrace(System.err);
+                } else {
+                    e.printStackTrace(System.err);
+                }
             }
         }
 

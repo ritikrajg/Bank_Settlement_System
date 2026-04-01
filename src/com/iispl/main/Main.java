@@ -15,11 +15,9 @@ import com.iispl.adapter.CbsAdapter;
 import com.iispl.adapter.NeftUpiAdapter;
 import com.iispl.adapter.RtgsAdapter;
 import com.iispl.adapter.SwiftAdapter;
+import com.iispl.dao.TransactionDao;
 import com.iispl.enums.SourceType;
-
-
-
-
+import com.iispl.services.PipelineOrchestrator;
 
 public class Main {
 
@@ -43,7 +41,9 @@ public class Main {
         int totalPayloads = payloads.values().stream().mapToInt(List::size).sum();
         System.out.printf("Loaded %d payloads from %d source systems.%n",
                 totalPayloads, payloads.size());
-	    
+        TransactionDao txnDao=new TransactionDao();
+        PipelineOrchestrator pipelineOrchestrator=new PipelineOrchestrator(registry, txnDao);
+        pipelineOrchestrator.runPipeline(payloads);
 	}
 	
 	private static void printBanner(LocalDate settlementDate) {

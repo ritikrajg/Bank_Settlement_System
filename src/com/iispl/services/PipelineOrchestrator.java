@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.iispl.adapter.AdapterRegistry;
-
+import com.iispl.dao.TransactionDao;
 import com.iispl.entity.IncomingTransaction;
 import com.iispl.enums.SourceType;
 
@@ -22,12 +22,12 @@ public class PipelineOrchestrator {
 
     private final AdapterRegistry adapterRegistry;
  
-    
+    private final TransactionDao txnDAO;
 
-    public PipelineOrchestrator(AdapterRegistry adapterRegistry
-            ) {
+    public PipelineOrchestrator(AdapterRegistry adapterRegistry,
+            TransactionDao txnDAO) {
         this.adapterRegistry = adapterRegistry;
-        
+        this.txnDAO = txnDAO;
  
     }
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
@@ -44,7 +44,14 @@ public class PipelineOrchestrator {
         //System.out.println("Date=" + settlementDate + " | operator=" + runBy);
 
         // ---- Phase 1: Ingestion ----------------------------------------
-        IngestionPhase ingestionPhase=new IngestionPhase(adapterRegistry, executor, queue);
-        ingestionPhase.runIngestion(payloads);
+        try {
+            IngestionPhase ingestionPhase=new IngestionPhase(adapterRegistry, executor, queue, txnDAO);
+            ingestionPhase.runIngestion(payloads);
+        } finally {
+            executor.shutdown();
+            if (!executor.awaitTermination(KEEP_ALIVE_SECS, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        }
     }
 }
