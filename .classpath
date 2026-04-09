@@ -6,8 +6,11 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="lib"/>
+	<classpathentry kind="src" path="data"/>
 	<classpathentry kind="lib" path="/home/administrator/Documents/Jar/c3p0-0.9.5.5.jar"/>
 	<classpathentry kind="lib" path="/home/administrator/Documents/Jar/mchange-commons-java-0.2.19.jar"/>
 	<classpathentry kind="lib" path="/home/administrator/Documents/Jar/postgresql-42.7.10.jar"/>
+	<classpathentry kind="lib" path="/home/administrator/Documents/Jar/json-simple-1.1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
