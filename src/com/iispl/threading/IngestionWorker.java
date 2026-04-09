@@ -10,66 +10,84 @@ import com.iispl.dao.TransactionDao;
 import com.iispl.entity.IncomingTransaction;
 import com.iispl.enums.TransactionStatus;
 
+/**
+ * Producer worker that parses raw payloads for a single channel
+ * (CBS, RTGS, NEFT, UPI, or SWIFT) and pushes the results onto
+ * the shared queue for the settlement phase.
+ *
+ * What happens for each payload line/message:
+ *  1. Parse the raw data using the adapter
+ *  2. Save the transaction to the database (status = QUEUED)
+ *  3. Put the transaction on the queue for settlement
+ *
+ * If parsing fails, the transaction is counted as "rejected" and
+ * processing continues with the next one.
+ */
 public class IngestionWorker implements Runnable {
-    private final TransactionAdapter adapter;
-    private final List<String> rawPayloads;
+
+    private final TransactionAdapter                 adapter;
+    private final List<String>                       rawPayloads;
     private final BlockingQueue<IncomingTransaction> queue;
-    private final TransactionDao txnDAO;
+    private final TransactionDao                     txnDAO;
+
+    // Counters — updated during run()
+    private int acceptedCount;
+    private int rejectedCount;
 
     public IngestionWorker(TransactionAdapter adapter,
             List<String> rawPayloads,
             BlockingQueue<IncomingTransaction> queue,
             TransactionDao txnDAO) {
-        this.adapter = adapter;
+        this.adapter     = adapter;
         this.rawPayloads = rawPayloads;
-        this.queue = queue;
-        this.txnDAO = txnDAO;
+        this.queue       = queue;
+        this.txnDAO      = txnDAO;
     }
 
     @Override
     public void run() {
-        String threadName = Thread.currentThread().getName();
-        System.out.printf("  [%s] Ingestion | %s | %d payloads%n",
-                threadName, adapter.getSourceType(), rawPayloads.size());
-
         try {
             for (String rawPayload : rawPayloads) {
                 try {
+                    // Step 1: Parse raw data into a transaction object
                     IncomingTransaction txn = adapter.adapt(rawPayload);
-                    txnDAO.insert(txn);
-                    queue.put(txn);
+
+                    // Step 2: Save to database with QUEUED status
                     txn.setStatus(TransactionStatus.QUEUED);
+                    txnDAO.insert(txn);
                     txnDAO.updateStatus(txn.getTxnId(), TransactionStatus.QUEUED);
                     DBConnection.commit();
 
-                    System.out.printf("    ACCEPTED %s%n", txn.getSourceRef());
+                    // Step 3: Put on the queue for settlement
+                    queue.put(txn);
+
+                    acceptedCount++;
+
                 } catch (InterruptedException e) {
+                    // Thread was interrupted — stop cleanly
                     Thread.currentThread().interrupt();
                     DBConnection.rollback();
-                    System.err.printf("    INTERRUPTED %s%n", adapter.getSourceType());
+                    System.err.println("[WARN] " + adapter.getSourceType()
+                            + " ingestion interrupted; stopping worker.");
                     break;
+
                 } catch (AdapterException e) {
-                    System.err.printf("    REJECTED  %s | %s%n",
-                            adapter.getSourceType(), e.getMessage());
+                    // Bad data — skip this payload and continue
+                    rejectedCount++;
+                    System.err.println("[ERROR] Invalid payload: " + rawPayload);
+
                 } catch (Exception e) {
+                    // Unexpected error — rollback and continue
                     DBConnection.rollback();
-                    System.err.printf("    ERROR     %s | %s%n",
-                            adapter.getSourceType(), e.getMessage());
-                    e.printStackTrace(System.err);
-                    if (isFatalDatabaseError(e)) {
-                        break;
-                    }
+                    rejectedCount++;
+                    e.printStackTrace();
                 }
             }
         } finally {
             DBConnection.close();
         }
 
-        System.out.printf("  [%s] Ingestion complete | %s%n",
-                threadName, adapter.getSourceType());
-    }
-
-    private boolean isFatalDatabaseError(Exception exception) {
-        return exception instanceof java.sql.SQLException;
+        System.out.printf("  [%-5s] accepted=%-4d  rejected=%d%n",
+                adapter.getSourceType(), acceptedCount, rejectedCount);
     }
 }

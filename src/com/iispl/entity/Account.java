@@ -18,7 +18,7 @@ public class Account extends BaseEntity implements Validatable {
 	private BigDecimal balance;
 	private String currency;
 	private Long customerId; // FK → Customer
-	private Long bankId;
+	private String bankId;
 	private AccountStatus status;
 
 	/** Guards all balance read-modify-write operations. */
@@ -28,7 +28,7 @@ public class Account extends BaseEntity implements Validatable {
 	}
 
 	public Account(String accountNumber, AccountType accountType, BigDecimal balance, String currency, Long customerId,
-			Long bankId, AccountStatus status) {
+			String bankId, AccountStatus status) {
 		this.accountNumber = accountNumber;
 		this.accountType = accountType;
 		this.balance = balance;
@@ -182,11 +182,11 @@ public class Account extends BaseEntity implements Validatable {
 		this.customerId = customerId;
 	}
 
-	public Long getBankId() {
+	public String getBankId() {
 		return bankId;
 	}
 
-	public void setBankId(Long bankId) {
+	public void setBankId(String bankId) {
 		this.bankId = bankId;
 	}
 

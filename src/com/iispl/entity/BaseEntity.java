@@ -19,7 +19,7 @@ public abstract class BaseEntity implements Auditable, Serializable {
     private static final long serialVersionUID = 1L;
 
     /** Surrogate primary key — set by the DAO after INSERT. */
-    private Long id;
+    private String id;
 
     /** Optimistic locking version — incremented on each UPDATE. */
     private int version;
@@ -56,8 +56,8 @@ public abstract class BaseEntity implements Auditable, Serializable {
     //  Getters / setters                                                   //
     // ------------------------------------------------------------------ //
 
-    public Long getId()                        { return id; }
-    public void setId(Long id)                 { this.id = id; }
+    public String getId()                        { return id; }
+    public void setId(String id)                 { this.id = id; }
 
     public int getVersion()                    { return version; }
     public void setVersion(int version)        { this.version = version; }
