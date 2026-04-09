@@ -9,122 +9,141 @@ import java.util.List;
 
 import com.iispl.enums.BatchStatus;
 
-/**
- * Groups a set of transactions for atomic batch settlement. HAS-A
- * List<SettlementRecord> — records are composed inside the batch.
- */
 public class SettlementBatch extends BaseEntity implements Validatable {
 
-	private String batchId;
-	private LocalDate batchDate;
-	private BatchStatus batchStatus;
-	private int totalTransactions;
-	private BigDecimal totalAmount;
-	private String runBy;
-	private LocalDateTime runAt;
+    private String batchId;
+    private String batchType;
+    private LocalDate batchDate;
+    private BatchStatus batchStatus;
+    private int totalTransactions;
+    private int failedTransactions;
+    private BigDecimal totalAmount;
+    private String runBy;
 
-	/** Composed records — owned by this batch. */
-	private final List<SettlementRecord> records = new ArrayList<>();
+    // ✅ NEW (aligned with DB)
+    private LocalDateTime completedAt;
 
-	public SettlementBatch() {
-	}
+    private final List<SettlementRecord> records = new ArrayList<>();
 
-	public SettlementBatch(String batchId, LocalDate batchDate, String runBy) {
-		this.batchId = batchId;
-		this.batchDate = batchDate;
-		this.batchStatus = BatchStatus.SCHEDULED;
-		this.runBy = runBy;
-		this.totalAmount = BigDecimal.ZERO;
-	}
+    public SettlementBatch() {
+    }
 
-	/** Adds a record and recalculates totals. */
-	public void addRecord(SettlementRecord record) {
-		records.add(record);
-		totalTransactions = records.size();
-		totalAmount = records.stream().map(SettlementRecord::getSettledAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-	}
+    public SettlementBatch(String batchId, String batchType,LocalDate batchDate, String runBy) {
+        this.batchId = batchId;
+        this.batchType=batchType;
+        this.batchDate = batchDate;
+        this.batchStatus = BatchStatus.INITIATED; // ✅ FIXED
+        this.runBy = runBy;
+        this.totalTransactions=0;
+        this.totalAmount = BigDecimal.ZERO;
+    }
 
-	public List<SettlementRecord> getRecords() {
-		return Collections.unmodifiableList(records);
-	}
+    /** Adds a record and recalculates totals */
+    public void addRecord(SettlementRecord record) {
+        records.add(record);
+        totalTransactions = records.size();
+        totalAmount = records.stream()
+                .map(SettlementRecord::getSettledAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 
-	@Override
-	public boolean isValid() {
-		return batchId != null && !batchId.isBlank() && batchDate != null && runBy != null && !runBy.isBlank();
-	}
+    public List<SettlementRecord> getRecords() {
+        return Collections.unmodifiableList(records);
+    }
 
-	@Override
-	public String validationErrors() {
-		StringBuilder sb = new StringBuilder();
-		if (batchId == null || batchId.isBlank())
-			sb.append("batchId required; ");
-		if (batchDate == null)
-			sb.append("batchDate required; ");
-		if (runBy == null || runBy.isBlank())
-			sb.append("runBy required; ");
-		return sb.toString();
-	}
+    @Override
+    public boolean isValid() {
+        return batchId != null && !batchId.isBlank()
+                && batchDate != null
+                && runBy != null && !runBy.isBlank();
+    }
 
-	// Getters / Setters
-	public String getBatchId() {
-		return batchId;
-	}
+    @Override
+    public String validationErrors() {
+        StringBuilder sb = new StringBuilder();
+        if (batchId == null || batchId.isBlank())
+            sb.append("batchId required; ");
+        if (batchDate == null)
+            sb.append("batchDate required; ");
+        if (runBy == null || runBy.isBlank())
+            sb.append("runBy required; ");
+        return sb.toString();
+    }
 
-	public void setBatchId(String batchId) {
-		this.batchId = batchId;
-	}
+    // Getters / Setters
 
-	public LocalDate getBatchDate() {
-		return batchDate;
-	}
+    public String getBatchId() {
+        return batchId;
+    }
 
-	public void setBatchDate(LocalDate batchDate) {
-		this.batchDate = batchDate;
-	}
+    public String getBatchType(){
+        return batchType;
+    }
 
-	public BatchStatus getBatchStatus() {
-		return batchStatus;
-	}
+    public LocalDate getBatchDate() {
+        return batchDate;
+    }
 
-	public void setBatchStatus(BatchStatus s) {
-		this.batchStatus = s;
-	}
+    public BatchStatus getBatchStatus() {
+        return batchStatus;
+    }
 
-	public int getTotalTransactions() {
-		return totalTransactions;
-	}
+    public void setBatchStatus(BatchStatus status) {
+        this.batchStatus = status;
+    }
 
-	public void setTotalTransactions(int n) {
-		this.totalTransactions = n;
-	}
+    public int getTotalTransactions() {
+        return totalTransactions;
+    }
 
-	public BigDecimal getTotalAmount() {
-		return totalAmount;
-	}
+    public void setTotalTransactions(int totalTransactions) {
+        this.totalTransactions += totalTransactions;
+    }
 
-	public void setTotalAmount(BigDecimal a) {
-		this.totalAmount = a;
-	}
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
 
-	public String getRunBy() {
-		return runBy;
-	}
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = this.totalAmount.add(totalAmount);
+    }
 
-	public void setRunBy(String runBy) {
-		this.runBy = runBy;
-	}
+    public synchronized void recordSettlement(BigDecimal amount) {
+        totalTransactions++;
+        totalAmount = totalAmount.add(amount);
+    }
 
-	public LocalDateTime getRunAt() {
-		return runAt;
-	}
+    public synchronized void recordFailure() {
+        failedTransactions++;
+    }
 
-	public void setRunAt(LocalDateTime runAt) {
-		this.runAt = runAt;
-	}
+    public int getFailedTransactions() {
+        return failedTransactions;
+    }
 
-	@Override
-	public String toString() {
-		return "SettlementBatch{batchId=" + batchId + ", date=" + batchDate + ", status=" + batchStatus + ", records="
-				+ totalTransactions + ", total=" + totalAmount + "}";
-	}
+    public int getSettledTransactions() {
+        return totalTransactions - failedTransactions;
+    }
+
+    public String getRunBy() {
+        return runBy;
+    }
+
+    // ✅ NEW
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "SettlementBatch{batchId=" + batchId
+                + ", date=" + batchDate
+                + ", status=" + batchStatus
+                + ", records=" + totalTransactions
+                + ", total=" + totalAmount + "}";
+    }
 }

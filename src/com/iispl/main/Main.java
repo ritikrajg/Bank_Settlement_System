@@ -26,7 +26,8 @@ import com.iispl.adapter.SwiftAdapter;
 import com.iispl.adapter.UpiAdapter;
 import com.iispl.dao.AccountDao;
 import com.iispl.dao.CustomerDao;
-
+import com.iispl.dao.SettlementBatchDAO;
+import com.iispl.dao.SettlementRecordDAO;
 import com.iispl.dao.TransactionDao;
 import com.iispl.enums.SourceType;
 import com.iispl.services.PipelineOrchestrator;
@@ -88,12 +89,11 @@ public class Main {
 
         // ─── Step 3: Create DAO objects ───
         TransactionDao     txnDao      = new TransactionDao();
-        
+        SettlementBatchDAO batchDAO    = new SettlementBatchDAO();
         AccountDao         accountDao  = new AccountDao();
-       
+        SettlementRecordDAO recordDAO  = new SettlementRecordDAO();
         CustomerDao        customerDao = new CustomerDao();
 
-        // ─── Step 4: Run the full pipeline ───
        
     }
 
