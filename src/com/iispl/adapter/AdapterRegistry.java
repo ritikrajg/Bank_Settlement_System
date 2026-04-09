@@ -20,7 +20,6 @@ public class AdapterRegistry {
     public void register(TransactionAdapter adapter) {
         if (adapter == null) throw new IllegalArgumentException("Adapter must not be null");
         registry.put(adapter.getSourceType(), adapter);
-        System.out.printf("  [Registry] Registered adapter: %-8s%n", adapter.getSourceType());
     }
 
     public TransactionAdapter getAdapter(SourceType type) throws AdapterException {

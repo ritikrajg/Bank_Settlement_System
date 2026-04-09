@@ -1,72 +1,119 @@
 package com.iispl.adapter;
 
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 import com.iispl.entity.IncomingTransaction;
 import com.iispl.enums.SourceType;
-import com.iispl.enums.TransactionType;
 
+/**
+ * Adapter for SWIFT source system.
+ * SWIFT data comes as an XML file.
+ * 
+ * Each transaction is passed as a single XML string like:
+ * <transaction>
+ *     <txnId>SWIFT-001</txnId>
+ *     <sourceBank>SBI</sourceBank>
+ *     ...
+ * </transaction>
+ * 
+ * This adapter uses Java's built-in XML parser (no external library needed).
+ * It converts each XML element into a common IncomingTransaction object.
+ */
 public class SwiftAdapter implements TransactionAdapter {
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     @Override
-    public SourceType getSourceType() { return SourceType.SWIFT; }
+    public SourceType getSourceType() {
+        return SourceType.SWIFT;
+    }
 
     @Override
     public IncomingTransaction adapt(String raw) throws AdapterException {
+
+        // Step 1: Check if the XML string is empty
         if (raw == null || raw.isBlank()) {
             throw new AdapterException("SWIFT", "Blank payload");
         }
 
         try {
-            String ref = null;
-            String srcBank = null;
-            String dstBank = null;
-            String fromAccount = null;
-            String toAccount = null;
-            String field32 = null;
-            String type = null;
+            // Step 2: Parse the XML string into a Document object
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
 
-            for (String line : raw.split("\n")) {
-                String trimmed = line.trim();
-                if (trimmed.startsWith(":20:")) ref = trimmed.substring(4).trim();
-                else if (trimmed.startsWith(":50:")) srcBank = trimmed.substring(4).trim();
-                else if (trimmed.startsWith(":59:")) dstBank = trimmed.substring(4).trim();
-                else if (trimmed.startsWith(":50A:")) fromAccount = trimmed.substring(5).trim();
-                else if (trimmed.startsWith(":59A:")) toAccount = trimmed.substring(5).trim();
-                else if (trimmed.startsWith(":32A:")) field32 = trimmed.substring(5).trim();
-                else if (trimmed.startsWith(":23B:")) type = trimmed.substring(5).trim();
-            }
+            // Wrap the XML string in an InputSource so the parser can read it
+            InputSource inputSource = new InputSource(new StringReader(raw));
+            Document doc = builder.parse(inputSource);
 
-            if (ref == null || srcBank == null || dstBank == null
-                    || fromAccount == null || toAccount == null
-                    || field32 == null || type == null) {
-                throw new AdapterException("SWIFT", "Missing required fields in payload");
-            }
+            // Step 3: Get the root element (which is <transaction>)
+            Element root = doc.getDocumentElement();
 
-            IncomingTransaction transaction = new IncomingTransaction();
-            transaction.setSourceRef(ref);
-            transaction.setSourceSystem(SourceType.SWIFT);
-            transaction.setSourceBank(srcBank);
-            transaction.setDestinationBank(dstBank);
-            transaction.setFromAccount(fromAccount);
-            transaction.setToAccount(toAccount);
-            transaction.setValueDate(LocalDate.parse(field32.substring(0, 8), FMT));
-            transaction.setCurrency(field32.substring(8, 11).toUpperCase());
-            transaction.setAmount(new BigDecimal(field32.substring(11)));
-            transaction.setTxnType(TransactionType.valueOf(type.toUpperCase()));
-            transaction.setRawPayload(raw);
+            // Step 4: Extract each field using the helper method
+            String txnId           = getTagValue(root, "txnId");
+            String sourceBank      = getTagValue(root, "sourceBank");
+            String destinationBank = getTagValue(root, "destinationBank");
+            String fromAccount     = getTagValue(root, "fromAccount");
+            String toAccount       = getTagValue(root, "toAccount");
+            String amountStr       = getTagValue(root, "amount");
+            String valueDateStr    = getTagValue(root, "valueDate");
 
+            // Step 5: Convert amount and date from String to proper types
+            BigDecimal amount   = new BigDecimal(amountStr);
+            LocalDate valueDate = LocalDate.parse(valueDateStr);
+
+            // Step 6: Create the common IncomingTransaction object
+            IncomingTransaction transaction = new IncomingTransaction(
+                    txnId,
+                    SourceType.SWIFT,
+                    sourceBank,
+                    destinationBank,
+                    fromAccount,
+                    toAccount,
+                    amount,
+                    valueDate
+            );
+
+            // Step 7: Validate the transaction
             if (!transaction.isValid()) {
-                throw new AdapterException("SWIFT", "Validation failed ref=" + ref);
+                throw new AdapterException("SWIFT", "Validation failed for txnId=" + txnId);
             }
+
             return transaction;
+
         } catch (AdapterException e) {
-            throw e;
+            throw e;  // re-throw adapter exceptions as-is
         } catch (Exception e) {
             throw new AdapterException("SWIFT", "Parse error: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Simple helper method to get the text content of an XML tag.
+     * 
+     * Example: for XML = <transaction><txnId>SWIFT-001</txnId>...</transaction>
+     *   getTagValue(element, "txnId") returns "SWIFT-001"
+     * 
+     * How it works:
+     *   1. Find all elements with the given tag name
+     *   2. Get the first one (index 0)
+     *   3. Return its text content
+     */
+    private String getTagValue(Element parent, String tagName) throws AdapterException {
+
+        NodeList nodeList = parent.getElementsByTagName(tagName);
+
+        if (nodeList.getLength() == 0) {
+            throw new AdapterException("SWIFT", "Missing XML tag: <" + tagName + ">");
+        }
+
+        return nodeList.item(0).getTextContent().trim();
     }
 }
