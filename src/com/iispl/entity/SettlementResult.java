@@ -14,7 +14,7 @@ import com.iispl.enums.SettlementStatus;
  */
 public class SettlementResult {
 
-	private final String batchId;
+	//private final String batchId;
 	private SettlementStatus status;
 	private int settledCount;
 	private int failedCount;
@@ -22,8 +22,8 @@ public class SettlementResult {
 	private final List<String> failureReasons = new ArrayList<>();
 	private final LocalDateTime processedAt = LocalDateTime.now();
 
-	public SettlementResult(String batchId) {
-		this.batchId = batchId;
+	public SettlementResult() {
+	
 		this.status = SettlementStatus.PENDING;
 		this.totalSettledAmount = BigDecimal.ZERO;
 	}
@@ -53,9 +53,9 @@ public class SettlementResult {
 	}
 
 	// Getters (read-only after construction)
-	public String getBatchId() {
-		return batchId;
-	}
+	// public String getBatchId() {
+	// 	return batchId;
+	// }
 
 	public SettlementStatus getStatus() {
 		return status;
@@ -87,7 +87,7 @@ public class SettlementResult {
 
 	@Override
 	public String toString() {
-		return "SettlementResult{batch=" + batchId + ", status=" + status + ", settled=" + settledCount + ", failed="
-				+ failedCount + ", total=" + totalSettledAmount + ", at=" + processedAt + "}";
+		return ", status=" + status + ", settled=" + settledCount + ", failed="
+				+ failedCount + ", total=" + totalSettledAmount;
 	}
 }

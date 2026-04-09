@@ -5,83 +5,98 @@ import java.time.LocalDateTime;
 
 import com.iispl.enums.SettlementStatus;
 
-/**
- * One settled transaction within a SettlementBatch. FK references batchId and
- * incomingTxnId (no object graph to keep JDBC simple).
- */
 public class SettlementRecord extends BaseEntity {
 
-	private String batchId; // FK → SettlementBatch
-	private Long incomingTxnId; // FK → IncomingTransaction
-	private BigDecimal settledAmount;
-	private LocalDateTime settledDate;
-	private SettlementStatus settledStatus;
-	private String failureReason;
+    private String batchId;
+    private String incomingTxnId;
+    private String sourceBank;
+    private String destinationBank;
+    private BigDecimal settledAmount;
+    private LocalDateTime settledDate;
+    private SettlementStatus settledStatus;
+    private String failureReason;
 
-	public SettlementRecord() {
-	}
+    public SettlementRecord() {
+    }
 
-	public SettlementRecord(String batchId, Long incomingTxnId, BigDecimal settledAmount,
-			SettlementStatus settledStatus) {
-		this.batchId = batchId;
-		this.incomingTxnId = incomingTxnId;
-		this.settledAmount = settledAmount;
-		this.settledStatus = settledStatus;
-		this.settledDate = LocalDateTime.now();
-	}
+    public SettlementRecord(String batchId, String incomingTxnId, BigDecimal settledAmount,
+            String sourceBank, String destinationBank,SettlementStatus settledStatus) {
+        this.batchId = batchId;
+        this.incomingTxnId = incomingTxnId;
+        this.sourceBank = sourceBank;
+        this.destinationBank = destinationBank;
+        this.settledAmount = settledAmount;
+        this.settledStatus = settledStatus;
+        this.settledDate = LocalDateTime.now();
+    }
 
-	// Getters / Setters
-	public String getBatchId() {
-		return batchId;
-	}
+    public String getBatchId() {
+        return batchId;
+    }
 
-	public void setBatchId(String batchId) {
-		this.batchId = batchId;
-	}
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
 
-	public Long getIncomingTxnId() {
-		return incomingTxnId;
-	}
+    public String getIncomingTxnId() {
+        return incomingTxnId;
+    }
 
-	public void setIncomingTxnId(Long incomingTxnId) {
-		this.incomingTxnId = incomingTxnId;
-	}
+    public void setIncomingTxnId(String incomingTxnId) {
+        this.incomingTxnId = incomingTxnId;
+    }
 
-	public BigDecimal getSettledAmount() {
-		return settledAmount;
-	}
+    public String getSourceBank() {
+        return sourceBank;
+    }
 
-	public void setSettledAmount(BigDecimal a) {
-		this.settledAmount = a;
-	}
+    public void setSourceBank(String sourceBank) {
+        this.sourceBank = sourceBank;
+    }
 
-	public LocalDateTime getSettledDate() {
-		return settledDate;
-	}
+    public String getDestinationBank() {
+        return destinationBank;
+    }
 
-	public void setSettledDate(LocalDateTime d) {
-		this.settledDate = d;
-	}
+    public void setDestinationBank(String destinationBank) {
+        this.destinationBank = destinationBank;
+    }
 
-	public SettlementStatus getSettledStatus() {
-		return settledStatus;
-	}
+    public BigDecimal getSettledAmount() {
+        return settledAmount;
+    }
 
-	public void setSettledStatus(SettlementStatus s) {
-		this.settledStatus = s;
-	}
+    public void setSettledAmount(BigDecimal settledAmount) {
+        this.settledAmount = settledAmount;
+    }
 
-	public String getFailureReason() {
-		return failureReason;
-	}
+    public LocalDateTime getSettledDate() {
+        return settledDate;
+    }
 
-	public void setFailureReason(String failureReason) {
-		this.failureReason = failureReason;
-	}
+    public void setSettledDate(LocalDateTime settledDate) {
+        this.settledDate = settledDate;
+    }
 
-	@Override
-	public String toString() {
-		return "SettlementRecord{id=" + getId() + ", batch=" + batchId + ", txnId=" + incomingTxnId + ", amount="
-				+ settledAmount + ", status=" + settledStatus + "}";
-	}
+    public SettlementStatus getSettledStatus() {
+        return settledStatus;
+    }
+
+    public void setSettledStatus(SettlementStatus settledStatus) {
+        this.settledStatus = settledStatus;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
+    }
+
+    public void setFailureReason(String failureReason) {
+        this.failureReason = failureReason;
+    }
+
+    @Override
+    public String toString() {
+        return "SettlementRecord{id=" + getId() + ", batch=" + batchId + ", txnId=" + incomingTxnId + ", amount="
+                + settledAmount + ", status=" + settledStatus + "}";
+    }
 }

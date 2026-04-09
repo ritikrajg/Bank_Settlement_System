@@ -1,10 +1,9 @@
 package com.iispl.enums;
 
 public enum BatchStatus {
-	SCHEDULED,
-    RUNNING,
-    COMPLETED,
-    FAILED,
+    INITIATED,     // Batch created
+    PROCESSING,    // Settlement running
     PARTIAL,
-    CANCELLED
+    COMPLETED,     // Success
+    FAILED         // Failure
 }
