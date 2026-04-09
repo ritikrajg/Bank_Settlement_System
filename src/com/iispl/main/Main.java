@@ -94,7 +94,10 @@ public class Main {
         SettlementRecordDAO recordDAO  = new SettlementRecordDAO();
         CustomerDao        customerDao = new CustomerDao();
 
-       
+        // ─── Step 4: Run the full pipeline ───
+        PipelineOrchestrator orchestrator = new PipelineOrchestrator(
+                registry, txnDao, batchDAO, accountDao, recordDAO, customerDao);
+        orchestrator.runPipeline(payloads);
     }
 
     /**

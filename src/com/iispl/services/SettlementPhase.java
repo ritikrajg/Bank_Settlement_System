@@ -36,12 +36,12 @@ import com.iispl.threading.SettlementProcessor;
  */
 public class SettlementPhase {
 
-    private final SettlementBatchDAO  batchDAO;
-    private final AccountDao          accountDao;
+    private final SettlementBatchDAO batchDAO;
+    private final AccountDao accountDao;
     private final SettlementRecordDAO recordDAO;
-    private final TransactionDao      txnDao;
-    private final CustomerDao         customerDao;
-    private final ExecutorService     executor;
+    private final TransactionDao txnDao;
+    private final CustomerDao customerDao;
+    private final ExecutorService executor;
 
     public SettlementPhase(SettlementBatchDAO batchDAO,
             AccountDao accountDao,
@@ -49,12 +49,12 @@ public class SettlementPhase {
             TransactionDao txnDao,
             CustomerDao customerDao,
             ExecutorService executor) {
-        this.batchDAO   = batchDAO;
+        this.batchDAO = batchDAO;
         this.accountDao = accountDao;
-        this.recordDAO  = recordDAO;
-        this.txnDao     = txnDao;
+        this.recordDAO = recordDAO;
+        this.txnDao = txnDao;
         this.customerDao = customerDao;
-        this.executor   = executor;
+        this.executor = executor;
     }
 
     /**
@@ -65,7 +65,8 @@ public class SettlementPhase {
      * @param ingestionCompleted flag set by the orchestrator when ingestion ends
      * @param consumerCount      number of parallel settlement workers to spawn
      * @param batchesByType      map of source-type name → active SettlementBatch
-     * @param settlementDate     date being settled (used for any date-stamped records)
+     * @param settlementDate     date being settled (used for any date-stamped
+     *                           records)
      * @param runBy              operator / scheduler identifier
      * @return one {@link Future} per worker
      */
@@ -119,7 +120,8 @@ public class SettlementPhase {
      */
     public List<SettlementResult> collectSettlementResults(
             List<Future<SettlementResult>> futures,
-            Map<String, SettlementBatch> batchesByType) throws Exception {
+            Map<String, SettlementBatch> batchesByType,
+            int ingestionRejected) throws Exception {
 
         List<SettlementResult> results = new ArrayList<>();
         for (Future<SettlementResult> future : futures) {
@@ -136,31 +138,36 @@ public class SettlementPhase {
             }
         }
 
-        printSummary(results);
+        printSummary(results, ingestionRejected);
+
         return results;
     }
 
     /**
      * Prints a human-readable summary of the settlement run to stdout.
      */
-    private void printSummary(List<SettlementResult> results) {
-        int        settled = 0;
-        int        failed  = 0;
-        BigDecimal amount  = BigDecimal.ZERO;
+    private void printSummary(List<SettlementResult> results, int ingestionRejected) {
+        int settled = 0;
+        int failed = 0;
+        BigDecimal amount = BigDecimal.ZERO;
 
         for (SettlementResult result : results) {
             settled += result.getSettledCount();
-            failed  += result.getFailedCount();
-            amount   = amount.add(result.getTotalSettledAmount());
+            failed += result.getFailedCount();
+            amount = amount.add(result.getTotalSettledAmount());
         }
+        int totalFailed = failed + ingestionRejected;
 
         System.out.println();
         System.out.println("╔══════════════════════════════════════╗");
         System.out.println("║          Settlement Summary          ║");
         System.out.println("╠══════════════════════════════════════╣");
-        System.out.printf( "║  Transactions settled : %-13d║%n", settled);
-        System.out.printf( "║  Transactions failed  : %-13d║%n", failed);
-        System.out.printf( "║  Total amount settled : %-13s║%n", amount.toPlainString());
+        System.out.printf("║  Transactions settled : %-13d║%n", settled);
+        System.out.printf("║  Transactions failed  : %-13d║%n", totalFailed);
+        System.out.printf("║  Skipped in ingestion : %-13d║%n", ingestionRejected);
+        System.out.printf("║  Failed in settlement : %-13d║%n", failed);
+        System.out.printf("║  Total amount settled : %-13s║%n", amount.toPlainString());
+
         System.out.println("╚══════════════════════════════════════╝");
     }
 
@@ -170,17 +177,18 @@ public class SettlementPhase {
      * total amount, and final status.
      */
     private void printBatchSummary(SettlementBatch batch) {
-        System.out.println();
-        System.out.println("  Batch Summary");
-        System.out.println("  ┌─────────────────────────────────────────┐");
-        System.out.printf( "  │  Batch ID       : %-22s│%n", batch.getBatchId());
-        System.out.printf( "  │  Source type    : %-22s│%n", batch.getBatchType());
-        System.out.printf( "  │  Settlement date: %-22s│%n", batch.getBatchDate());
-        System.out.printf( "  │  Settled count  : %-22d│%n", batch.getTotalTransactions());
-        System.out.printf( "  │  Amount settled : %-22s│%n", batch.getTotalAmount().toPlainString());
-        System.out.printf( "  │  Status         : %-22s│%n", batch.getBatchStatus());
-        System.out.println("  └─────────────────────────────────────────┘");
-    }
+    System.out.println();
+    System.out.println("  Batch Summary");
+    System.out.println("  ┌──────────────────────────────────────────────────────────────┐");
+    System.out.printf( "  │  Batch ID       : %-40s│%n", batch.getBatchId());
+    System.out.printf( "  │  Source type    : %-40s│%n", batch.getBatchType());
+    System.out.printf( "  │  Settlement date: %-40s│%n", batch.getBatchDate());
+    System.out.printf( "  │  Settled count  : %-40d│%n", batch.getTotalTransactions());
+    System.out.printf( "  │  Amount settled : %-40s│%n", batch.getTotalAmount().toPlainString());
+    System.out.printf( "  │  Status         : %-40s│%n", batch.getBatchStatus());
+    System.out.println("  └──────────────────────────────────────────────────────────────┘");
+}
+
 
     /**
      * Updates the batch status in the database once all its transactions have

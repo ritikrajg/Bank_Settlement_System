@@ -21,10 +21,10 @@ import com.iispl.threading.IngestionWorker;
  * Phase 1 of the settlement pipeline: Ingestion.
  *
  * What this class does:
- *  - Takes the raw payload data from all 5 sources
- *  - Creates one IngestionWorker per source type
- *  - Each worker runs in parallel on the thread pool
- *  - Workers parse the raw data and put transactions onto a shared queue
+ * - Takes the raw payload data from all 5 sources
+ * - Creates one IngestionWorker per source type
+ * - Each worker runs in parallel on the thread pool
+ * - Workers parse the raw data and put transactions onto a shared queue
  */
 public class IngestionPhase {
 
@@ -41,17 +41,18 @@ public class IngestionPhase {
             BlockingQueue<IncomingTransaction> pipelineQueue,
             TransactionDao txnDAO) {
         this.adapterRegistry = adapterRegistry;
-        this.executor        = executor;
-        this.queue           = pipelineQueue;
-        this.txnDAO          = txnDAO;
+        this.executor = executor;
+        this.queue = pipelineQueue;
+        this.txnDAO = txnDAO;
     }
 
     /**
      * Starts one ingestion worker per source type.
      * Waits for all workers to finish before returning.
      */
-    public void runIngestion(Map<SourceType, List<String>> payloads)
+    public int runIngestion(Map<SourceType, List<String>> payloads)
             throws InterruptedException {
+        List<IngestionWorker> workers = new ArrayList<>();
 
         System.out.println();
         System.out.println("Phase 1 : Ingestion");
@@ -72,6 +73,7 @@ public class IngestionPhase {
             try {
                 TransactionAdapter adapter = adapterRegistry.getAdapter(type);
                 IngestionWorker worker = new IngestionWorker(adapter, entry.getValue(), queue, txnDAO);
+                workers.add(worker);
                 futures.add(executor.submit(worker));
             } catch (Exception e) {
                 System.err.println("  [ERROR] Could not start ingestion for " + type + ": " + e.getMessage());
@@ -91,7 +93,12 @@ public class IngestionPhase {
                 System.err.println("  [ERROR] Ingestion failed: " + errorMsg);
             }
         }
+        int totalRejected = 0;
+        for (IngestionWorker worker : workers) {
+            totalRejected += worker.getRejectedCount();
+        }
 
         System.out.println("Ingestion complete ");
+        return totalRejected;
     }
 }

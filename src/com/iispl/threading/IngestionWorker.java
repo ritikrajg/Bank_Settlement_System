@@ -16,32 +16,40 @@ import com.iispl.enums.TransactionStatus;
  * the shared queue for the settlement phase.
  *
  * What happens for each payload line/message:
- *  1. Parse the raw data using the adapter
- *  2. Save the transaction to the database (status = QUEUED)
- *  3. Put the transaction on the queue for settlement
+ * 1. Parse the raw data using the adapter
+ * 2. Save the transaction to the database (status = QUEUED)
+ * 3. Put the transaction on the queue for settlement
  *
  * If parsing fails, the transaction is counted as "rejected" and
  * processing continues with the next one.
  */
 public class IngestionWorker implements Runnable {
 
-    private final TransactionAdapter                 adapter;
-    private final List<String>                       rawPayloads;
+    private final TransactionAdapter adapter;
+    private final List<String> rawPayloads;
     private final BlockingQueue<IncomingTransaction> queue;
-    private final TransactionDao                     txnDAO;
+    private final TransactionDao txnDAO;
 
     // Counters — updated during run()
     private int acceptedCount;
     private int rejectedCount;
 
+    public int getAcceptedCount() {
+        return acceptedCount;
+    }
+
+    public int getRejectedCount() {
+        return rejectedCount;
+    }
+
     public IngestionWorker(TransactionAdapter adapter,
             List<String> rawPayloads,
             BlockingQueue<IncomingTransaction> queue,
             TransactionDao txnDAO) {
-        this.adapter     = adapter;
+        this.adapter = adapter;
         this.rawPayloads = rawPayloads;
-        this.queue       = queue;
-        this.txnDAO      = txnDAO;
+        this.queue = queue;
+        this.txnDAO = txnDAO;
     }
 
     @Override
@@ -49,18 +57,23 @@ public class IngestionWorker implements Runnable {
         try {
             for (String rawPayload : rawPayloads) {
                 try {
-                    // Step 1: Parse raw data into a transaction object
                     IncomingTransaction txn = adapter.adapt(rawPayload);
 
-                    // Step 2: Save to database with QUEUED status
                     txn.setStatus(TransactionStatus.QUEUED);
-                    txnDAO.insert(txn);
+                    boolean inserted = txnDAO.insert(txn);
+
+                    if (!inserted) {
+                        DBConnection.rollback();
+                        rejectedCount++;
+                        System.err.println("[WARN] Duplicate transaction skipped: txn_id="
+                                + txn.getTxnId() + ", source=" + adapter.getSourceType());
+                        continue;
+                    }
+
                     txnDAO.updateStatus(txn.getTxnId(), TransactionStatus.QUEUED);
                     DBConnection.commit();
 
-                    // Step 3: Put on the queue for settlement
                     queue.put(txn);
-
                     acceptedCount++;
 
                 } catch (InterruptedException e) {
